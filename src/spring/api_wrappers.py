@@ -156,3 +156,64 @@ def getHistoricalRhDayPrices(symbol, debug = False):
         except requests.exceptions.Timeout as errt:
             print ("Timeout Error:",errt)  
             pass
+        
+def getLatestInDayPrice(instrument_oid, price_type, debug = False):
+    while True:
+        try:
+            r = requests.get(url = CONFIG['spring']['rest']['GET_LATEST_IN_DAY_PRICE'] % (CONFIG['spring']['HOST'], CONFIG['spring']['PORT'], instrument_oid, price_type))
+            response = r.json() 
+            if response['errorMsg'] is not None and debug:
+                print(response['errorMsg'])
+            return response['response']
+        except requests.exceptions.RequestException as err:
+            print ("OOps: Something Else",err)
+            pass
+        except requests.exceptions.HTTPError as errh:
+            print ("Http Error:",errh)
+            pass
+        except requests.exceptions.ConnectionError as errc:
+            print ("Error Connecting:",errc)
+            pass
+        except requests.exceptions.Timeout as errt:
+            print ("Timeout Error:",errt)  
+            pass
+        
+def getHistoricalRhInDayPrices(symbol, debug = False):
+    while True:
+        try:
+            r = requests.get(url = CONFIG['flask']['rest']['GET_IN_DAY_PRICES'] % (CONFIG['flask']['HOST'], CONFIG['flask']['PORT'], CONFIG['flask']['CONTEXT'], symbol))
+            response = r.json() 
+            if response['errorMsg'] is not None and debug:
+                print(response['errorMsg'])
+            return response['payload']
+        except requests.exceptions.RequestException as err:
+            print ("OOps: Something Else",err)
+            pass
+        except requests.exceptions.HTTPError as errh:
+            print ("Http Error:",errh)
+            pass
+        except requests.exceptions.ConnectionError as errc:
+            print ("Error Connecting:",errc)
+            pass
+        except requests.exceptions.Timeout as errt:
+            print ("Timeout Error:",errt)  
+            pass
+        
+def addInDayPrice(instrument_oid, payload):
+    while True:
+        try:
+            r = requests.post(url = CONFIG['spring']['rest']['ADD_NEW_IN_DAY_PRICE'] % (CONFIG['spring']['HOST'], CONFIG['spring']['PORT'], instrument_oid), json = payload)
+            response = r.json()
+            return response
+        except requests.exceptions.RequestException as err:
+            print ("OOps: Something Else",err)
+            pass
+        except requests.exceptions.HTTPError as errh:
+            print ("Http Error:",errh)
+            pass
+        except requests.exceptions.ConnectionError as errc:
+            print ("Error Connecting:",errc)
+            pass
+        except requests.exceptions.Timeout as errt:
+            print ("Timeout Error:",errt)  
+            pass

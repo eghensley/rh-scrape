@@ -8,7 +8,7 @@ Created on Thu May 28 17:28:15 2020
 
 import requests
 from datetime import datetime
-from spring import addInstrument , getAllInstrumentSymbols, getInstrumentBySymbol, addPrice, getLatestPrice, getHistoricalRhDayPrices
+from spring import addInDayPrice, getLatestInDayPrice, getHistoricalRhInDayPrices, addInstrument, getAllInstrumentSymbols, getInstrumentBySymbol, addPrice, getLatestPrice, getHistoricalRhDayPrices
 from utils import progress
 from joblib import Parallel, delayed
 
@@ -96,11 +96,44 @@ def _pop_inter_prices():
     all_symbols = getAllInstrumentSymbols()
     Parallel(n_jobs = 4, verbose = 10)(delayed(_pop_instrument_inter_price) (i) for i in all_symbols)
 
+def _pop_each_inner_price(inst_oid, hist, latest_ts, debug = True):
+    price_ts = datetime.strptime(hist['begins_at'].replace('Z',''), '%Y-%m-%dT%H:%M:%S')
+    if latest_ts is not None and price_ts <= latest_ts:
+        return
+    add_price_payload = {}
+    add_price_payload['timestamp'] = hist['begins_at']
+    add_price_payload['openPrice'] = hist['open_price']
+    add_price_payload['closePrice'] = hist['close_price']
+    add_price_payload['highPrice'] = hist['high_price']
+    add_price_payload['lowPrice'] = hist['low_price']
+    add_price_payload['volume'] = hist['volume']
+    add_price_payload['type'] = 'INNER_DAY'
+    resp = addInDayPrice(inst_oid, add_price_payload)
+    if resp['errorMsg'] is not None and debug:
+        print(resp['errorMsg'])
+    
+def _pop_instrument_inner_price(sym):
+#    sym = 'APDN'
+    latest_ts = None
+    inst = getInstrumentBySymbol(sym)
+    latest_price = getLatestInDayPrice(inst['oid'], 'INNER_DAY')
+    if len(latest_price) != 0:
+        latest_ts = datetime.strptime(latest_price[0], '%Y-%m-%d %H:%M:%S.%f')
+    data = getHistoricalRhInDayPrices(sym, debug = True)
+    for hist in data:
+        _pop_each_inner_price(inst['oid'], hist, latest_ts)  
+        
+def _pop_inner_prices():
+    all_symbols = getAllInstrumentSymbols()
+    Parallel(n_jobs = 4, verbose = 10)(delayed(_pop_instrument_inner_price) (i) for i in all_symbols)
+
             
 def populate(args):
     if args.domain.upper() == 'SYMBOLS':
         _pop_stocks()
     elif args.domain.upper() == 'INTER':
         _pop_inter_prices()
+    elif args.domain.upper() == 'INTRA':
+        _pop_inner_prices()    
 
     
